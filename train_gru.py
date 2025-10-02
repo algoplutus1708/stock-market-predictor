@@ -20,6 +20,7 @@ class GRU(nn.Module):
         return out
 
 # Load and prepare data
+print("Loading data for training...")
 data = pd.read_csv('GOOGL_2006-01-01_to_2018-01-01.csv', index_col='Date', parse_dates=['Date'])
 close_price = data['Close'].values.reshape(-1, 1)
 
@@ -47,25 +48,25 @@ num_layers = 2
 output_dim = 1
 model = GRU(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, num_layers=num_layers)
 criterion = torch.nn.MSELoss(reduction='mean')
-optimiser = torch.optim.Adam(model.parameters(), lr=0.01)
+# --- KEY CHANGE: Lower learning rate for more stable training ---
+optimiser = torch.optim.Adam(model.parameters(), lr=0.005)
+
+# --- KEY CHANGE: Increased epochs for more thorough training ---
+epochs = 150 
+print(f"Starting training for {epochs} epochs...")
 
 # Train the model
-epochs = 100
 for i in range(epochs):
     for seq, labels in train_inout_seq:
         optimiser.zero_grad()
-        
-        # NOTE: The problematic line has been removed from here
-        
-        y_pred = model(seq.view(-1, train_window, 1)) # Reshape input for GRU
-
-        single_loss = criterion(y_pred, labels.view(-1,1)) # Reshape labels
+        y_pred = model(seq.view(-1, train_window, 1))
+        single_loss = criterion(y_pred, labels.view(-1,1))
         single_loss.backward()
         optimiser.step()
 
-    if i%25 == 1:
-        print(f'epoch: {i:3} loss: {single_loss.item():10.8f}')
+    if (i+1) % 25 == 0: # Print progress every 25 epochs
+        print(f'epoch: {i+1:3} loss: {single_loss.item():10.8f}')
 
 # Save the trained model
 torch.save(model.state_dict(), 'gru_model.pth')
-print("Custom GRU model trained and saved as gru_model.pth")
+print("\nNew, smarter GRU model has been trained and saved as gru_model.pth")

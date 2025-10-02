@@ -34,29 +34,36 @@
             })
             .then(response => response.json())
             .then(data => {
+                // Trace for the historical data
                 const trace1 = {
                     x: data.dates,
                     y: data.close,
                     mode: 'lines',
                     name: 'Historical Close'
                 };
+
+                // Trace for the ARIMA forecast
                 const trace2 = {
-                    x: data.dates.slice(-30), // Dates for the forecast
+                    x: data.future_dates, // Use future dates
                     y: data.arima_forecast,
                     mode: 'lines',
                     name: 'ARIMA Forecast'
                 };
+
+                // Trace for the GRU forecast
                 const trace3 = {
-                    x: data.dates.slice(-1), // Last date
+                    x: data.future_dates, // Use future dates
                     y: data.gru_forecast,
                     mode: 'lines',
                     name: 'GRU Forecast'
                 };
+
                 const layout = {
                     title: `${stock} Stock Price Prediction`,
                     xaxis: { title: 'Date' },
                     yaxis: { title: 'Price' }
                 };
+                
                 Plotly.newPlot('chart', [trace1, trace2, trace3], layout);
             });
         });
