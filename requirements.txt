@@ -1,0 +1,6 @@
+flask
+pandas
+statsmodels
+torch
+scikit-learn
+pmdarima
