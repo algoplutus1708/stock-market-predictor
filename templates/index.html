@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Market Predictor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Stock Market Predictor</h1>
+        <div class="controls">
+            <select id="stock-select">
+                <option value="GOOGL">Google</option>
+                <option value="MSFT">Microsoft</option>
+                <option value="IBM">IBM</option>
+                <option value="AMZN">Amazon</option>
+            </select>
+            <button id="forecast-btn">Get Forecast</button>
+        </div>
+        <div id="chart"></div>
+    </div>
+
+    <script>
+        document.getElementById('forecast-btn').addEventListener('click', () => {
+            const stock = document.getElementById('stock-select').value;
+            fetch('/api/forecast', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ stock: stock })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const trace1 = {
+                    x: data.dates,
+                    y: data.close,
+                    mode: 'lines',
+                    name: 'Historical Close'
+                };
+                const trace2 = {
+                    x: data.dates.slice(-30), // Dates for the forecast
+                    y: data.arima_forecast,
+                    mode: 'lines',
+                    name: 'ARIMA Forecast'
+                };
+                const trace3 = {
+                    x: data.dates.slice(-1), // Last date
+                    y: data.gru_forecast,
+                    mode: 'lines',
+                    name: 'GRU Forecast'
+                };
+                const layout = {
+                    title: `${stock} Stock Price Prediction`,
+                    xaxis: { title: 'Date' },
+                    yaxis: { title: 'Price' }
+                };
+                Plotly.newPlot('chart', [trace1, trace2, trace3], layout);
+            });
+        });
+    </script>
+</body>
+</html>
