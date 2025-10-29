@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Market Predictor</title>
+    
+    <!-- CSS is embedded -->
+    <style>
+        /* --- Global Styles & Color Variables --- */
+        :root {
+            --bg-color: #f4f7fc;
+            --card-color: #ffffff;
+            --text-color: #333333;
+            --primary-color: #007bff;
+            --primary-hover-color: #0056b3;
+            --border-color: #e0e0e0;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --loader-color: var(--primary-color);
+        }
+
+        body.dark-mode {
+            --bg-color: #121212;
+            --card-color: #1e1e1e;
+            --text-color: #e0e0e0;
+            --primary-color: #3b82f6;
+            --primary-hover-color: #2563eb;
+            --border-color: #333333;
+            --shadow-color: rgba(0, 0, 0, 0.4);
+            --loader-color: var(--primary-color);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            transition: background-color 0.3s, color 0.3s;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        /* --- Main Container --- */
+        .container {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* --- Header & Dark Mode Toggle --- */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            color: var(--text-color);
+            margin: 0;
+        }
+
+        .theme-switch-wrapper {
+            display: flex;
+            align-items: center;
+        }
+
+        .theme-switch {
+            display: inline-block;
+            height: 34px;
+            position: relative;
+            width: 60px;
+        }
+
+        .theme-switch input {
+            display: none;
+        }
+
+        .slider {
+            background-color: #ccc;
+            bottom: 0;
+            cursor: pointer;
+            left: 0;
+            position: absolute;
+            right: 0;
+            top: 0;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            background-color: #fff;
+            bottom: 4px;
+            content: "";
+            height: 26px;
+            left: 4px;
+            position: absolute;
+            transition: .4s;
+            width: 26px;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--primary-color);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        /* --- Control and Chart Cards --- */
+        .card {
+            background-color: var(--card-color);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 15px var(--shadow-color);
+            transition: background-color 0.3s, box-shadow 0.3s;
+            border: 1px solid var(--border-color);
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        select, button {
+            font-size: 1rem;
+            padding: 12px 18px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background-color: var(--card-color);
+            color: var(--text-color);
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover-color);
+            border-color: var(--primary-hover-color);
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            background-color: #aaa;
+            border-color: #aaa;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #chart-container {
+            width: 100%;
+            min-height: 450px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+        
+        /* --- Message Box --- */
+        .message-box {
+            color: var(--text-color);
+            opacity: 0.7;
+            font-size: 1.1rem;
+            text-align: center;
+        }
+        
+        /* --- Loader --- */
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 5px solid var(--loader-color);
+            border-bottom-color: transparent;
+            border-radius: 50%;
+            display: none; /* Hidden by default */
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+            position: absolute;
+        }
+
+        @keyframes rotation {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+    
+    <!-- Plotly.js for charting - Updated to a newer version -->
+    <script src="https://cdn.plot.ly/plotly-2.33.0.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Stock Predictor</h1>
+            <div class="theme-switch-wrapper">
+                <label class="theme-switch" for="checkbox">
+                    <input type="checkbox" id="checkbox" />
+                    <div class="slider round"></div>
+                </label>
+            </div>
+        </header>
+
+        <div class="card">
+            <div class="controls">
+                <select id="stock-select" aria-label="Select Stock">
+                    <option value="GOOGL">Google</option>
+                    <option value="MSFT">Microsoft</option>
+                    <option value="IBM">IBM</option>
+                    <option value="AMZN">Amazon</option>
+                </select>
+                <button id="forecast-btn">Get Forecast</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div id="chart-container">
+                <div id="chart"></div>
+                <div class="loader" id="loader"></div>
+                <div class="message-box" id="message-box">
+                    Select a stock and click "Get Forecast" to begin.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        const themeToggle = document.getElementById('checkbox');
+        const forecastBtn = document.getElementById('forecast-btn');
+        const stockSelect = document.getElementById('stock-select');
+        const chartDiv = document.getElementById('chart');
+        const chartContainer = document.getElementById('chart-container');
+        const loader = document.getElementById('loader');
+        const messageBox = document.getElementById('message-box');
+        
+        let currentChartData = []; // Store chart data to update theme
+
+        // --- THEME SWITCHER LOGIC ---
+        function applyTheme(theme) {
+            if (theme === 'dark') {
+                document.body.classList.add('dark-mode');
+                themeToggle.checked = true;
+            } else {
+                document.body.classList.remove('dark-mode');
+                themeToggle.checked = false;
+            }
+            // Update chart theme only if data exists
+            if (currentChartData.length > 0) {
+                updateChartTheme();
+            }
+        }
+
+        themeToggle.addEventListener('change', () => {
+            const theme = themeToggle.checked ? 'dark' : 'light';
+            localStorage.setItem('theme', theme);
+            applyTheme(theme);
+        });
+        
+        // Load saved theme from local storage
+        const savedTheme = localStorage.getItem('theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        applyTheme(savedTheme);
+
+
+        // --- PLOTLY CHART LOGIC ---
+        function updateChartTheme() {
+            const isDarkMode = document.body.classList.contains('dark-mode');
+            const plotLayout = {
+                title: `${stockSelect.value} Stock Price Prediction`,
+                xaxis: { 
+                    title: 'Date',
+                    gridcolor: isDarkMode ? '#2a2a2a' : '#e0e0e0',
+                    rangeselector: {buttons: [
+                        {count: 1, label: '1m', step: 'month', stepmode: 'backward'},
+                        {count: 6, label: '6m', step: 'month', stepmode: 'backward'},
+                        {count: 1, label: 'YTD', step: 'year', stepmode: 'todate'},
+                        {count: 1, label: '1y', step: 'year', stepmode: 'backward'},
+                        {step: 'all'}
+                    ]},
+                    rangeslider: {visible: true},
+                    type: 'date'
+                },
+                yaxis: { 
+                    title: 'Price (USD)',
+                    gridcolor: isDarkMode ? '#2a2a2a' : '#e0e0e0'
+                },
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                font: {
+                    color: isDarkMode ? '#e0e0e0' : '#333333'
+                },
+                legend: {
+                    orientation: 'h',
+                    yanchor: 'bottom',
+                    y: 1.02,
+                    xanchor: 'right',
+                    x: 1
+                },
+                autosize: true
+            };
+            
+            if (currentChartData.length > 0) {
+                 Plotly.newPlot('chart', currentChartData, plotLayout, {responsive: true});
+            }
+        }
+        
+        // --- UI State Functions ---
+        function showLoader(isLoading) {
+            loader.style.display = isLoading ? 'block' : 'none';
+            forecastBtn.disabled = isLoading;
+            if (isLoading) {
+                messageBox.style.display = 'none';
+                chartDiv.style.display = 'none';
+            }
+        }
+        
+        function showMessage(message) {
+            chartDiv.style.display = 'none';
+            messageBox.style.display = 'block';
+            messageBox.textContent = message;
+        }
+        
+        function showChart() {
+            chartDiv.style.display = 'block';
+            messageBox.style.display = 'none';
+        }
+
+        // --- Fetch Data ---
+        forecastBtn.addEventListener('click', () => {
+            const stock = stockSelect.value;
+            
+            showLoader(true);
+            
+            // Fetch from the local Flask server
+            fetch('/api/forecast', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ stock: stock })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                const trace1 = { 
+                    x: data.dates, 
+                    y: data.close, 
+                    mode: 'lines', 
+                    name: 'Historical Close',
+                    line: {color: '#636efa'}
+                };
+                const trace2 = { 
+                    x: data.future_dates, 
+                    y: data.arima_forecast, 
+                    mode: 'lines', 
+                    name: 'ARIMA Forecast',
+                    line: {color: '#ef553b', dash: 'dash'}
+                };
+                const trace3 = { 
+                    x: data.future_dates, 
+                    y: data.gru_forecast, 
+                    mode: 'lines', 
+                    name: 'GRU Forecast',
+                    line: {color: '#00cc96', dash: 'dot'}
+                };
+                
+                currentChartData = [trace1, trace2, trace3];
+                showLoader(false);
+                showChart();
+                updateChartTheme(); // Initial plot with correct theme
+            })
+            .catch(error => {
+                console.error('Error fetching forecast:', error);
+                showLoader(false);
+                showMessage(`Error: Could not load chart data. ${error.message}. Make sure the backend server is running.`);
+            });
+        });
+        
+        // Ensure chart resizes with window
+        window.addEventListener('resize', () => {
+            if (currentChartData.length > 0) {
+                Plotly.Plots.resize(chartDiv);
+            }
+        });
+    </script>
+</body>
+</html>
+
