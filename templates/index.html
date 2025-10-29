@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Market Predictor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Stock Predictor</h1>
+            <div class="theme-switch-wrapper">
+                <label class="theme-switch" for="checkbox">
+                    <input type="checkbox" id="checkbox" />
+                    <div class="slider round"></div>
+                </label>
+            </div>
+        </header>
+
+        <div class="card">
+            <div class="controls">
+                <select id="stock-select">
+                    <option value="GOOGL">Google</option>
+                    <option value="MSFT">Microsoft</option>
+                    <option value="IBM">IBM</option>
+                    <option value="AMZN">Amazon</option>
+                </select>
+                <button id="forecast-btn">Get Forecast</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div id="chart"></div>
+        </div>
+    </div>
+
+    <script>
+        const themeToggle = document.getElementById('checkbox');
+        const forecastBtn = document.getElementById('forecast-btn');
+        const stockSelect = document.getElementById('stock-select');
+
+        // --- THEME SWITCHER LOGIC ---
+        function applyTheme(theme) {
+            if (theme === 'dark') {
+                document.body.classList.add('dark-mode');
+                themeToggle.checked = true;
+            } else {
+                document.body.classList.remove('dark-mode');
+                themeToggle.checked = false;
+            }
+            updateChartTheme();
+        }
+
+        themeToggle.addEventListener('change', () => {
+            if (themeToggle.checked) {
+                localStorage.setItem('theme', 'dark');
+                applyTheme('dark');
+            } else {
+                localStorage.setItem('theme', 'light');
+                applyTheme('light');
+            }
+        });
+        
+        // Load saved theme from local storage
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        applyTheme(savedTheme);
+
+
+        // --- PLOTLY CHART LOGIC ---
+        let currentChartData = []; // Store chart data to update theme
+        
+        function updateChartTheme() {
+            const isDarkMode = document.body.classList.contains('dark-mode');
+            const plotLayout = {
+                title: `${stockSelect.value} Stock Price Prediction`,
+                xaxis: { 
+                    title: 'Date',
+                    gridcolor: isDarkMode ? '#2a2a2a' : '#e0e0e0' 
+                },
+                yaxis: { 
+                    title: 'Price',
+                    gridcolor: isDarkMode ? '#2a2a2a' : '#e0e0e0'
+                },
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                font: {
+                    color: isDarkMode ? '#e0e0e0' : '#333333'
+                },
+                legend: {
+                    orientation: 'h',
+                    yanchor: 'bottom',
+                    y: 1.02,
+                    xanchor: 'right',
+                    x: 1
+                }
+            };
+            if (currentChartData.length > 0) {
+                 Plotly.newPlot('chart', currentChartData, plotLayout);
+            }
+        }
+        
+        forecastBtn.addEventListener('click', () => {
+            const stock = stockSelect.value;
+            fetch('/api/forecast', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ stock: stock })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const trace1 = { x: data.dates, y: data.close, mode: 'lines', name: 'Historical Close' };
+                const trace2 = { x: data.future_dates, y: data.arima_forecast, mode: 'lines', name: 'ARIMA Forecast' };
+                const trace3 = { x: data.future_dates, y: data.gru_forecast, mode: 'lines', name: 'GRU Forecast' };
+                
+                currentChartData = [trace1, trace2, trace3];
+                updateChartTheme(); // Initial plot with correct theme
+            });
+        });
+    </script>
+</body>
+</html>

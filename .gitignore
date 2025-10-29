@@ -1,0 +1,13 @@
+# Python virtual environment
+.venv/
+
+# Trained model file
+*.pth
+
+# Python cache
+__pycache__/
+*.pyc
+
+# IDE/Editor specific files
+.vscode/
+.idea/
