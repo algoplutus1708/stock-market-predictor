@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from flask import Flask, request, jsonify, render_template_string
+from flask_cors import CORS  # Import CORS
 from statsmodels.tsa.arima.model import ARIMA
 from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import Sequential
@@ -10,6 +11,8 @@ import os
 
 # --- Flask App Initialization ---
 app = Flask(__name__)
+# Enable CORS for all routes and origins
+CORS(app)
 
 # --- Data Loading ---
 # Create a dictionary to map stock symbols to their CSV file paths
@@ -174,3 +177,4 @@ def forecast_api():
 # --- Run the App ---
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
+
